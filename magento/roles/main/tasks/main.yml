@@ -83,21 +83,3 @@
      - name: update nginx default vhost
        template: src=templates/nginx_vhost.conf.j2 dest=/etc/nginx/sites-available/default owner=root group=root mode=0644
        notify: reload nginx
-
-     - name: get modman installer
-       get_url: url=https://raw.github.com/colinmollenhour/modman/master/modman-installer dest=/tmp/modman-installer mode=0644
-
-     - name: install modman
-       become: True
-       become_user: "{{ web_user_name }}"
-       shell: bash /tmp/modman-installer
-
-     - name: init modman
-       become: True
-       become_user: "{{ web_user_name }}"
-       shell: /home/{{ web_user_name }}/bin/modman init chdir=/home/{{ web_user_name }}/public_html/htdocs
-
-     - name: install cache plugin
-       become: True
-       become_user: "{{ web_user_name }}"
-       shell: /home/{{ web_user_name }}/bin/modman clone https://github.com/nexcess/magento-turpentine.git chdir=/home/{{ web_user_name }}/public_html/htdocs

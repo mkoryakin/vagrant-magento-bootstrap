@@ -30,6 +30,8 @@
         - nfs-common
         - php5
         - php5-cli
+        
+     - service: name=apache2 state=stopped enabled=no
 
      - name: create needed dirs
        file: path=/home/{{ web_user_name }}/{{ item }} owner={{ web_user_name }} group=admin state=directory mode=0755

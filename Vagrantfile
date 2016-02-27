@@ -9,6 +9,8 @@ for i in 0 1 2 3; do
   ssh-keyscan 192.168.50.10$i >> /home/vagrant/.ssh/known_hosts
 done
 cat /vagrant/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys
+cp /vagrant/id_rsa ~/.ssh/
+cp /vagrant/id_rsa.pub ~/.ssh/
 sudo apt-get install software-properties-common
 sudo apt-add-repository ppa:ansible/ansible
 sudo apt-get update

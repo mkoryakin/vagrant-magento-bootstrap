@@ -1,0 +1,41 @@
+---
+
+- name: apply common configuration to all nodes
+  hosts: all
+  remote_user: vagrant
+  become: True
+  become_user: root
+  become_method: sudo
+
+  roles:
+    - common
+
+- name: configure mainnode
+  hosts: mainnode
+  remote_user: vagrant
+  become: True
+  become_user: root
+  become_method: sudo
+
+  roles:
+    - main
+
+- name: configure php nodes
+  hosts: php
+  remote_user: vagrant
+  become: True
+  become_user: root
+  become_method: sudo
+
+  roles:
+    - php
+
+- name: deploy MySQL and configure the databases
+  hosts: db
+  remote_user: vagrant
+  become: True
+  become_user: root
+  become_method: sudo
+
+  roles:
+    - db

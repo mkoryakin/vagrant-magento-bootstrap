@@ -1,0 +1,39 @@
+[mysql]
+port                           = 3306
+socket                         = /var/run/mysqld/mysqld.sock
+[mysqld]
+bind-address                   = 0.0.0.0
+user                           = mysql
+default-storage-engine         = InnoDB
+socket                         = /var/run/mysqld/mysqld.sock
+pid-file                       = /var/lib/mysql/mysql.pid
+log_bin_trust_function_creators = 1
+key-buffer-size                = 32M
+max-connect-errors             = 1000000
+skip-name-resolve
+sysdate-is-now                 = 1
+innodb                         = FORCE
+innodb-strict-mode             = 1
+datadir                        = /var/lib/mysql/
+tmp-table-size                 = 32M
+max-heap-table-size            = 32M
+thread-cache-size              = 50
+open-files-limit               = 65535
+table-definition-cache         = 1024
+table-open-cache               = 2048
+innodb-flush-method            = O_DIRECT
+innodb-log-files-in-group      = 2
+innodb-log-file-size           = 64M
+innodb-flush-log-at-trx-commit = 1
+innodb-file-per-table          = 1
+log-error                      = /var/lib/mysql/mysql-error.log
+log-queries-not-using-indexes  = 1
+slow-query-log                 = 1
+slow-query-log-file            = /var/lib/mysql/mysql-slow.log
+max_allowed_packet             = 32M
+innodb_buffer_pool_size        = 128M
+max_connections                = 300
+query_cache_size               = 16M
+query_cache_type               = 1
+
+!includedir /etc/mysql/conf.d/

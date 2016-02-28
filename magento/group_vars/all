@@ -1,0 +1,9 @@
+---
+
+web_user_name: magento
+web_user_id: 1100
+domain:
+varnish_port: 6081
+varnish_ip: 127.0.0.1
+php_upstream_port: 8080
+php_upstream_ip: 127.0.0.1

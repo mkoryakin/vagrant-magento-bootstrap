@@ -1,0 +1,85 @@
+---
+
+     - name: add web user
+       user: name={{ web_user_name }} comment="Default Web User" uid={{ web_user_id }} group=admin
+
+     - name: add nginx repo
+       apt_repository: repo='ppa:nginx/stable'
+       when: ansible_distribution == 'Ubuntu'
+
+     - name: add php repo
+       apt_repository: repo='ppa:ondrej/php5-5.6'
+       when: ansible_distribution == 'Ubuntu'
+
+     - name: Add Varnish apt key.
+       apt_key: url=http://repo.varnish-cache.org/debian/GPG-key.txt state=present
+
+     - name: Add Varnish apt repository.
+       apt_repository: repo='deb http://repo.varnish-cache.org/{{ ansible_distribution|lower }} {{ ansible_distribution_release }} varnish-4.1' state=present
+
+     - name: run updates
+       apt: update_cache=yes
+
+     - name: install role pkgs
+       apt: pkg={{ item }} state=latest
+       when: ansible_pkg_mgr == 'apt'
+       with_items:
+        - nginx
+        - varnish
+        - nfs-kernel-server
+        - nfs-common
+        - php5
+        - php5-cli
+
+     - service: name=apache2 state=stopped enabled=no
+
+     - name: create needed dirs
+       file: path=/home/{{ web_user_name }}/{{ item }} owner={{ web_user_name }} group=admin state=directory mode=0755
+       with_items:
+         - public_html
+         - logs
+         - tmp
+
+     - name: create exports shares
+       lineinfile: dest=/etc/exports line="/home/{{ web_user_name }}/{{ item[1] }} {{ hostvars[item[0]]['ansible_eth0']['ipv4']['address'] }}(rw,sync,no_root_squash,no_subtree_check)"
+       with_nested:
+        - "{{ groups['php'] }}"
+        - [ 'public_html', 'logs', 'tmp' ]
+
+     - name: update exportfs -a
+       shell: exportfs -a
+
+     - name: start nfs daemon
+       service: name=nfs-kernel-server state=started enabled=yes
+
+     - name: allow ssh in ufw
+       ufw: rule=allow port={{ item }} proto=tcp
+       with_items:
+        - '80'
+        - '443'
+
+     - name: get composer setup
+       get_url: url=https://getcomposer.org/installer dest=/tmp/composer-setup.php mode=0644
+
+     - name: install composer
+       shell: php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+
+     - name: add composer.json
+       template: src=templates/composer.json.j2 dest=/home/{{ web_user_name }}/public_html/composer.json owner={{ web_user_name }} group=admin mode=0644
+
+     - name: create magento working
+       file: path=/home/{{ web_user_name }}/public_html/htdocs owner={{ web_user_name }} group=admin state=directory mode=0755
+
+     - name: install magento depth via composer
+       composer: command=install working_dir=/home/{{ web_user_name }}/public_html
+
+     - name: chown
+       file: path=/home/{{ web_user_name }}/public_html owner={{ web_user_name }} group=admin state=directory mode=0755 recurse=yes
+
+     - name: update varnish defaults (https://github.com/nexcess/magento-turpentine/wiki/Installation)
+       template: src=templates/varnish_defaults.j2 dest=/etc/default/varnish owner=root group=root mode=0644
+       notify: restart varnish
+
+     - name: update nginx default vhost
+       template: src=templates/nginx_vhost.conf.j2 dest=/etc/nginx/sites-available/default owner=root group=root mode=0644
+       notify: reload nginx

@@ -1,0 +1,39 @@
+---
+
+   - name: install updates
+     apt: upgrade=dist
+     when: ansible_pkg_mgr == 'apt'
+
+   - name: install first pkgs
+     apt: pkg={{ item }} state=latest
+     when: ansible_pkg_mgr == 'apt' and ansible_distribution == 'Ubuntu'
+     with_items:
+      - curl
+      - wget
+      - vim
+      - monit
+      - screen
+      - whois
+      - mtr
+      - dnsutils
+      - openssl
+      - python-software-properties
+      - ufw
+      - git
+
+   - name: polices in ufw
+     ufw: direction={{ item.direction }} policy={{ item.policy }}
+     with_items:
+       - { direction: 'incoming', policy: 'deny' }
+       - { direction: 'outgoing', policy: 'allow' }
+
+   - name: allow ssh in ufw
+     ufw: rule=allow port=22 proto=tcp
+
+   - name: all connections from our nodes
+     ufw: rule=allow src={{ hostvars[item]['ansible_eth0']['ipv4']['address'] }}
+     with_items:
+      - "{{ groups['all'] }}"
+
+   - name: enable ufw
+     ufw:  state=enabled

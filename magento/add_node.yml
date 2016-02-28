@@ -1,0 +1,54 @@
+---
+- name: gather all hosts information
+  hosts: all
+
+- hosts: mainnode
+  remote_user: ubuntu
+  become: True
+  become_user: root
+  become_method: sudo
+
+  tasks:
+     - name: create exports shares
+       lineinfile: dest=/etc/exports line="/home/{{ web_user_name }}/{{ item[1] }} {{ hostvars[item[0]]['ansible_eth0']['ipv4']['address'] }}(rw,sync,no_root_squash,no_subtree_check)"
+       with_nested:
+        - "{{ groups['php'] }}"
+        - [ 'public_html', 'logs', 'tmp' ]
+
+     - name: update exportfs -a
+       shell: exportfs -a
+
+- name: apply common configuration to all nodes
+  hosts: php
+  remote_user: ubuntu
+  become: True
+  become_user: root
+  become_method: sudo
+
+  roles:
+    - common
+    - php
+
+- hosts: db
+  remote_user: ubuntu
+  become: True
+  become_user: root
+  become_method: sudo
+
+  tasks:
+   - name: create magento user
+     mysql_user: name={{ dbuser }} password={{ upassword }} host={{ hostvars[item]['ansible_eth0']['ipv4']['address'] }} priv=mysql.proc:SELECT/{{ dbname }}.*:ALL login_password="{{ mysql_root_password }}" login_user=root state=present
+     with_items:
+      - "{{ groups['php'] }}"
+      - "{{ groups['db'] }}"
+
+- hosts: mainnode
+  remote_user: ubuntu
+  become: True
+  become_user: root
+  become_method: sudo
+
+  tasks:
+     - name: update nginx default vhost
+       template: src=templates/nginx_vhost.conf.j2 dest=/etc/nginx/sites-available/default owner=root group=root mode=0644
+       notify: reload nginx

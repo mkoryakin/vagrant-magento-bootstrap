@@ -1,0 +1,104 @@
+upstream loadb {
+{% for host in groups['php'] %}
+      server {{ hostvars[host]['ansible_eth0']['ipv4']['address'] }}:9000 weight=1;
+{% endfor %}
+}
+
+server {
+      listen  {{ php_upstream_ip }}:{{ php_upstream_port }};
+      server_name {{ domain }};
+
+      root /home/{{ web_user_name }}/public_html/htdocs;
+      access_log /home/{{ web_user_name }}/logs/{{ domain }}_access_{{ php_upstream_port }}.log;
+      error_log /home/{{ web_user_name }}/logs/{{ domain }}_error_{{ php_upstream_port }}.log;
+
+      location / {
+        index index.html index.php;
+        autoindex            off;
+        try_files $uri $uri/ @handler;
+        expires 30d;
+      }
+
+      location ^~ /app/                { deny all; }
+      location ^~ /includes/           { deny all; }
+      location ^~ /lib/                { deny all; }
+      location ^~ /media/downloadable/ { deny all; }
+      location ^~ /pkginfo/            { deny all; }
+      location ^~ /report/config.xml   { deny all; }
+      location ^~ /var/                { deny all; }
+
+      location @handler {
+          rewrite / /index.php;
+      }
+
+      location ~ .php/ {
+          rewrite ^(.*.php)/ $1 last;
+      }
+
+      client_max_body_size 100m;
+
+      location ~ \.php$ {
+        fastcgi_pass loadb;
+        if (!-e $request_filename) { rewrite / /index.php last; }
+        expires        off;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_pass_header  Set-Cookie;
+	fastcgi_read_timeout 300;
+        include        fastcgi_params;
+      }
+}
+
+server {
+      listen 80;
+
+      server_name {{ domain }};
+
+      root /home/{{ web_user_name }}/public_html/htdocs;
+      access_log /home/{{ web_user_name }}/logs/{{ domain }}_access.log;
+      error_log /home/{{ web_user_name }}/logs/{{ domain }}_error.log;
+
+      location / {
+        index index.html index.php;
+        autoindex            off;
+        try_files $uri $uri/ @handler;
+        expires 30d;
+      }
+
+      location ^~ /app/                { deny all; }
+      location ^~ /includes/           { deny all; }
+      location ^~ /lib/                { deny all; }
+      location ^~ /media/downloadable/ { deny all; }
+      location ^~ /pkginfo/            { deny all; }
+      location ^~ /report/config.xml   { deny all; }
+      location ^~ /var/                { deny all; }
+
+      location @handler {
+          rewrite / /index.php;
+      }
+
+      location ~ .php/ {
+          rewrite ^(.*.php)/ $1 last;
+      }
+
+      location ~ .php$ {
+        if (!-e $request_filename) { rewrite / /index.php last; }
+        expires        off;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_pass_header  Set-Cookie;
+        proxy_pass http://{{ varnish_ip }}:{{ varnish_port }}$request_uri;
+	fastcgi_read_timeout 300;
+        include        fastcgi_params;
+      }
+
+      gzip  on;
+      gzip_comp_level 1;
+      gzip_proxied any;
+      gzip_types application/javascript text/plain text/html text/css application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+
+}

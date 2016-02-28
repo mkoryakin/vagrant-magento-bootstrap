@@ -1,0 +1,24 @@
+---
+- hosts: all
+  remote_user: ubuntu
+  become: True
+  become_user: root
+  become_method: sudo
+
+  tasks:
+   - apt: name=python-httplib2 update_cache=yes
+   - action: uri url=http://checkip.amazonaws.com/ return_content=yes
+     register: ip_lookup
+   - set_fact: local_ip="{{ ip_lookup.content | regex_replace('\n','') }}"
+   - debug: var=local_ip
+
+   - name: get eth0 ip
+     debug: msg="IP address is {{ hostvars[inventory_hostname]['ansible_eth0']['ipv4'].address }}"
+
+   - name: get eth0 ip
+     debug: msg="{{ hostvars[inventory_hostname].ansible_eth0.ipv4.address }}"
+
+   - debug: msg="{{ hostvars[item]['ansible_eth0']['ipv4']['address'] }}"
+     with_items:
+       - "{{ groups['php'] }}"
+       - "{{ groups['db'] }}"

@@ -1,0 +1,9 @@
+[mainnode]
+main ansible_host=172.31.12.60 ansible_user=ubuntu
+
+[php]
+php1 ansible_host=172.31.12.59 ansible_user=ubuntu
+php2 ansible_host=172.31.12.58 ansible_user=ubuntu
+
+[db]
+db ansible_host=172.31.12.61 ansible_user=ubuntu
